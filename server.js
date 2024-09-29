@@ -43,10 +43,10 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-// API to get rentals based on city
-app.get('/api/rentals', (req, res) => {
+// API to get listings based on city
+app.get('/api/listings', (req, res) => {
   const city = req.query.city;
-  const query = 'SELECT * FROM rentals WHERE city = ?';
+  const query = 'SELECT * FROM listings WHERE city = ?';
 
   db.query(query, [city], (err, results) => {
     if (err) {
@@ -56,6 +56,7 @@ app.get('/api/rentals', (req, res) => {
     }
   });
 });
+
 
 app.post('/api/signup', (req, res) => {
   const { name, email, password } = req.body;
@@ -112,7 +113,7 @@ app.post('/api/login', (req, res) => {
       }
 
       if (isMatch) {
-        const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '1h' });
+        const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '3h' });
         return res.status(200).json({ message: 'Login successful', token });
       } else {
         return res.status(401).json({ message: 'Invalid email or password' });
@@ -122,21 +123,101 @@ app.post('/api/login', (req, res) => {
 });
 
 
-// Protected route to add a listing
 app.post('/api/add-listing', verifyToken, (req, res) => {
-  const { city, address, name, description, price } = req.body;
+  const {
+    city,
+    address,
+    name,
+    description,
+    price,
+    water,
+    electricity,
+    internet,
+    heat,
+    property_type,
+    rooms,
+    bathrooms,
+    area
+  } = req.body;
+
+  // Check if all required fields are present
+  const requiredFields = ['city', 'address', 'name', 'description', 'price', 'property_type', 'rooms', 'bathrooms', 'area'];
+  const missingFields = requiredFields.filter(field => !req.body[field]);
+
+  if (missingFields.length > 0) {
+    return res.status(400).json({ error: `Missing required fields: ${missingFields.join(', ')}` });
+  }
+
   const userId = req.user.id;
 
-  const query = 'INSERT INTO listings (user_id, city, address, name, description, price) VALUES (?, ?, ?, ?, ?, ?)';
+  const query = `
+    INSERT INTO listings (
+      user_id, 
+      city, 
+      address, 
+      name, 
+      description, 
+      price, 
+      water, 
+      electricity, 
+      internet, 
+      heat, 
+      property_type, 
+      rooms, 
+      bathrooms, 
+      area
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `;
 
-  db.query(query, [userId, city, address, name, description, price], (err, result) => {
-    if (err) {
-      return res.status(500).json({ error: 'Database query failed' });
+  db.query(
+    query, 
+    [
+      userId,
+      city,
+      address,
+      name,
+      description,
+      price,
+      water ? 1 : 0,
+      electricity ? 1 : 0,
+      internet ? 1 : 0,
+      heat ? 1 : 0,
+      property_type,
+      rooms,
+      bathrooms,
+      area
+    ], 
+    (err, result) => {
+      if (err) {
+        console.error('Database query failed:', err);
+        return res.status(500).json({ error: 'Database query failed', details: err.message });
+      }
+
+      res.status(201).json({ message: 'Listing added successfully' });
     }
+  );
+});
 
-    res.status(201).json({ message: 'Listing added successfully' });
+// API to get a rental by ID
+app.get('/api/rental/:id', (req, res) => {
+  const id = req.params.id;
+  const query = 'SELECT * FROM listings WHERE id = ?'; // Update table name to listings
+
+  db.query(query, [id], (err, results) => {
+    if (err) {
+      console.error('Database query error:', err); // Log the error
+      res.status(500).json({ error: 'Database query failed' });
+    } else if (results.length > 0) {
+      res.json(results[0]);
+    } else {
+      console.log('No listing found with ID:', id); // Log when no listing is found
+      res.status(404).json({ error: 'Listing not found' });
+    }
   });
 });
+
+
+
 
 // Start the server
 app.listen(port, () => {

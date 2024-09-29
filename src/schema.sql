@@ -22,6 +22,14 @@ CREATE TABLE IF NOT EXISTS listings (
   description TEXT,
   price DECIMAL(10, 2),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  property_type ENUM('house', 'room') NOT NULL,
+  rooms INT NOT NULL,          
+  bathrooms DECIMAL(2, 1) NOT NULL, 
+  area DECIMAL(10, 2) NOT NULL,  
+  water BOOLEAN DEFAULT FALSE,         
+  electricity BOOLEAN DEFAULT FALSE,   
+  internet BOOLEAN DEFAULT FALSE,       
+  heat BOOLEAN DEFAULT FALSE,           
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
@@ -37,5 +45,10 @@ INSERT INTO rentals (city, address, name) VALUES
 ('Calgary', '2500 University Dr NW, Calgary, AB T2N 1N4', 'Rental 1'),
 ('Los Angeles', '456 Sample Rd, Los Angeles, CA', 'Rental 2'),
 ('Calgary', '4548 Vandergrift Crescent Northwest, Calgary, Alberta, T3A 0J2', 'Rental 3');
+
+ALTER TABLE listings ADD COLUMN water BOOLEAN DEFAULT FALSE;
+ALTER TABLE listings ADD COLUMN electricity BOOLEAN DEFAULT FALSE;
+ALTER TABLE listings ADD COLUMN internet BOOLEAN DEFAULT FALSE;
+ALTER TABLE listings ADD COLUMN heat BOOLEAN DEFAULT FALSE;
 
 
