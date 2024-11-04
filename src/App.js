@@ -7,6 +7,7 @@ import MapPage from './components/MapPage';
 import SignupPage from './components/SignupPage';
 import AddListingPage from './components/AddListing'; 
 import RentalPage from './components/RentalPage';  
+import ProfilePage from './components/ProfilePage';
 
 function App() {
   return (
@@ -19,6 +20,8 @@ function App() {
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/add-listing" element={<AddListingPage />} /> 
         <Route path="/rental/:id" element={<RentalPage />} /> 
+        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/edit-listing/:id" element={<AddListingPage />} />
       </Routes>
     </Router>
   );

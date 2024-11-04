@@ -32,23 +32,3 @@ CREATE TABLE IF NOT EXISTS listings (
   heat BOOLEAN DEFAULT FALSE,           
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
-
--- Create the rentals table with sample data
-CREATE TABLE IF NOT EXISTS rentals (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  city VARCHAR(255) NOT NULL,
-  address VARCHAR(255) NOT NULL,
-  name VARCHAR(255) NOT NULL
-);
-
-INSERT INTO rentals (city, address, name) VALUES
-('Calgary', '2500 University Dr NW, Calgary, AB T2N 1N4', 'Rental 1'),
-('Los Angeles', '456 Sample Rd, Los Angeles, CA', 'Rental 2'),
-('Calgary', '4548 Vandergrift Crescent Northwest, Calgary, Alberta, T3A 0J2', 'Rental 3');
-
-ALTER TABLE listings ADD COLUMN water BOOLEAN DEFAULT FALSE;
-ALTER TABLE listings ADD COLUMN electricity BOOLEAN DEFAULT FALSE;
-ALTER TABLE listings ADD COLUMN internet BOOLEAN DEFAULT FALSE;
-ALTER TABLE listings ADD COLUMN heat BOOLEAN DEFAULT FALSE;
-
-

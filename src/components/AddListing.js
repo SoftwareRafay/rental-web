@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import cities from '../cities.json';
 
 function AddListingPage() {
+  const { id } = useParams(); 
   const [address, setAddress] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
@@ -17,6 +18,7 @@ function AddListingPage() {
   const [rooms, setRooms] = useState('');
   const [bathrooms, setBathrooms] = useState('');
   const [area, setArea] = useState('');
+  const [isEditMode, setIsEditMode] = useState(false);
   const navigate = useNavigate();
 
   const isCanadianCity = (city) => {
@@ -24,12 +26,70 @@ function AddListingPage() {
     return cities.some(([cityName]) => cityName.toLowerCase() === cityLower);
   };
 
+  const resetFormFields = () => {
+    setAddress('');
+    setDescription('');
+    setPrice('');
+    setCity('');
+    setName('');
+    setWater(false);
+    setElectricity(false);
+    setInternet(false);
+    setHeat(false);
+    setPropertyType('');
+    setRooms('');
+    setBathrooms('');
+    setArea('');
+  };
+
+  useEffect(() => {
+    if (id) {
+      setIsEditMode(true);
+      const fetchListing = async () => {
+        try {
+          const token = localStorage.getItem('token');
+          const response = await fetch(`http://localhost:5000/api/listing/${id}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            setAddress(data.address);
+            setDescription(data.description);
+            setPrice(data.price);
+            setCity(data.city);
+            setName(data.name);
+            setWater(data.water || false); 
+            setElectricity(data.electricity || false); 
+            setInternet(data.internet || false); 
+            setHeat(data.heat || false); 
+            setPropertyType(data.property_type);
+            setRooms(data.rooms);
+            setBathrooms(data.bathrooms);
+            setArea(data.area);
+          } else {
+            setError('Failed to fetch listing details.');
+          }
+        } catch (err) {
+          setError('An error occurred while fetching listing details.');
+        }
+      };
+
+      fetchListing();
+    } else {
+      setIsEditMode(false);
+      resetFormFields();
+    }
+  }, [id]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     const token = localStorage.getItem('token');
     if (!token) {
-      setError('You must be logged in to add a listing.');
+      setError('You must be logged in to add or edit a listing.');
       return;
     }
 
@@ -39,52 +99,41 @@ function AddListingPage() {
     }
 
     try {
-      const response = await fetch(
-        `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(
-          address
-        )},${encodeURIComponent(city)}&key=dba5a6c69c204c15a6009781837926da&limit=1`
-      );
-      const data = await response.json();
+      const formData = {
+        city,
+        address,
+        name,
+        description,
+        price: parseFloat(price),
+        water,
+        electricity,
+        internet,
+        heat,
+        property_type: propertyType,
+        rooms: parseInt(rooms, 10),
+        bathrooms: parseFloat(bathrooms),
+        area: parseFloat(area),
+      };
 
-      if (
-        data.results.length === 0 ||
-        data.results[0].components.country !== 'Canada' ||
-        !data.results[0].components.city ||
-        data.results[0].components.city.toLowerCase() !== city.toLowerCase()
-      ) {
-        setError('Address must be a valid address in the specified city.');
-        return;
-      }
+      const url = isEditMode
+        ? `http://localhost:5000/api/update-listing/${id}`
+        : 'http://localhost:5000/api/add-listing';
+      const method = isEditMode ? 'PUT' : 'POST';
 
-      const listingResponse = await fetch('http://localhost:5000/api/add-listing', {
-        method: 'POST',
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          city,
-          address,
-          name,
-          description,
-          price: parseFloat(price),
-          water,
-          electricity,
-          internet,
-          heat,
-          property_type: propertyType,
-          rooms: parseInt(rooms, 10),
-          bathrooms: parseFloat(bathrooms),
-          area: parseFloat(area),
-        }),
+        body: JSON.stringify(formData),
       });
 
-      if (listingResponse.ok) {
-        const data = await listingResponse.json();
-        alert(data.message);
-        navigate('/');
+      if (response.ok) {
+        alert(isEditMode ? 'Listing updated successfully' : 'Listing added successfully');
+        navigate('/profile');
       } else {
-        const errorData = await listingResponse.json();
+        const errorData = await response.json();
         setError(errorData.message || 'An error occurred.');
       }
     } catch (err) {
@@ -95,7 +144,7 @@ function AddListingPage() {
 
   return (
     <div>
-      <h1>Add a New Listing</h1>
+      <h1>{isEditMode ? 'Edit Listing' : 'Add a New Listing'}</h1>
       {error && <p style={{ color: 'red' }}>{error}</p>}
       <form onSubmit={handleSubmit}>
         <div>
@@ -218,7 +267,7 @@ function AddListingPage() {
           />
         </div>
 
-        <button type="submit">Add Listing</button>
+        <button type="submit">{isEditMode ? 'Update Listing' : 'Add Listing'}</button>
       </form>
     </div>
   );

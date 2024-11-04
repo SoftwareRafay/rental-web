@@ -5,11 +5,15 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs'); // For password hashing
 const jwt = require('jsonwebtoken');
 
+
+
+
 const app = express();
 const port = 5000;
 
 app.use(cors());
 app.use(express.json());
+
 
 const db = mysql.createConnection({
   host: 'localhost',
@@ -137,11 +141,21 @@ app.post('/api/add-listing', verifyToken, (req, res) => {
     property_type,
     rooms,
     bathrooms,
-    area
+    area,
   } = req.body;
 
   // Check if all required fields are present
-  const requiredFields = ['city', 'address', 'name', 'description', 'price', 'property_type', 'rooms', 'bathrooms', 'area'];
+  const requiredFields = [
+    'city',
+    'address',
+    'name',
+    'description',
+    'price',
+    'property_type',
+    'rooms',
+    'bathrooms',
+    'area',
+  ];
   const missingFields = requiredFields.filter(field => !req.body[field]);
 
   if (missingFields.length > 0) {
@@ -170,7 +184,7 @@ app.post('/api/add-listing', verifyToken, (req, res) => {
   `;
 
   db.query(
-    query, 
+    query,
     [
       userId,
       city,
@@ -185,8 +199,8 @@ app.post('/api/add-listing', verifyToken, (req, res) => {
       property_type,
       rooms,
       bathrooms,
-      area
-    ], 
+      area,
+    ],
     (err, result) => {
       if (err) {
         console.error('Database query failed:', err);
@@ -198,10 +212,86 @@ app.post('/api/add-listing', verifyToken, (req, res) => {
   );
 });
 
-// API to get a rental by ID
+
+app.put('/api/update-listing/:id', async (req, res) => {
+  const { id } = req.params;
+  const {
+    city,
+    address,
+    name,
+    description,
+    price,
+    water,
+    electricity,
+    internet,
+    heat,
+    property_type,
+    rooms,
+    bathrooms,
+    area,
+  } = req.body;
+
+  const query = `
+    UPDATE listings 
+    SET 
+      city = ?, 
+      address = ?, 
+      name = ?, 
+      description = ?, 
+      price = ?, 
+      water = ?, 
+      electricity = ?, 
+      internet = ?, 
+      heat = ?, 
+      property_type = ?, 
+      rooms = ?, 
+      bathrooms = ?, 
+      area = ?
+    WHERE id = ?;
+  `;
+
+  const values = [
+    city,
+    address,
+    name,
+    description,
+    price,
+    water ? 1 : 0,
+    electricity ? 1 : 0,
+    internet ? 1 : 0,
+    heat ? 1 : 0,
+    property_type,
+    rooms,
+    bathrooms,
+    area,
+    id,
+  ];
+
+  try {
+    const [result] = await db.promise().query(query, values);
+
+    if (result.affectedRows > 0) {
+      res.status(200).json({ message: 'Listing updated successfully.' });
+    } else {
+      res.status(404).json({ message: 'Listing not found.' });
+    }
+  } catch (error) {
+    console.error('Database query error:', error);
+    res.status(500).json({ message: 'An error occurred while updating the listing.' });
+  }
+});
+
+
 app.get('/api/rental/:id', (req, res) => {
   const id = req.params.id;
-  const query = 'SELECT * FROM listings WHERE id = ?'; // Update table name to listings
+
+  
+  const query = `
+    SELECT listings.*, users.email AS ownerEmail
+    FROM listings
+    JOIN users ON listings.user_id = users.id
+    WHERE listings.id = ?;
+  `;
 
   db.query(query, [id], (err, results) => {
     if (err) {
@@ -215,6 +305,59 @@ app.get('/api/rental/:id', (req, res) => {
     }
   });
 });
+
+// Get user's listings
+app.get('/api/my-listings', verifyToken, (req, res) => {
+  const userId = req.user.id;
+
+  const query = 'SELECT * FROM listings WHERE user_id = ?';
+
+  db.query(query, [userId], (err, results) => {
+    if (err) {
+      res.status(500).json({ error: 'Failed to fetch listings' });
+    } else {
+      res.json(results);
+    }
+  });
+});
+
+// Delete a listing
+app.delete('/api/delete-listing/:id', verifyToken, (req, res) => {
+  const listingId = req.params.id;
+  const userId = req.user.id;
+
+  const query = 'DELETE FROM listings WHERE id = ? AND user_id = ?';
+
+  db.query(query, [listingId, userId], (err, result) => {
+    if (err) {
+      res.status(500).json({ error: 'Failed to delete listing' });
+    } else if (result.affectedRows === 0) {
+      res.status(404).json({ message: 'Listing not found' });
+    } else {
+      res.json({ message: 'Listing deleted successfully' });
+    }
+  });
+});
+
+// Fetch listing by ID for editing
+app.get('/api/listing/:id', verifyToken, (req, res) => {
+  const listingId = req.params.id;
+  const userId = req.user.id;
+
+  const query = 'SELECT * FROM listings WHERE id = ? AND user_id = ?';
+  
+  db.query(query, [listingId, userId], (err, result) => {
+    if (err) {
+      res.status(500).json({ error: 'Failed to fetch listing.' });
+    } else if (result.length === 0) {
+      res.status(404).json({ message: 'Listing not found.' });
+    } else {
+      res.json(result[0]);
+    }
+  });
+});
+
+
 
 
 

@@ -22,8 +22,9 @@ function Header() {
       <nav className="nav">
         <ul>
           <li><Link to="/">Home</Link></li>
-          <li><Link to="/login">Login</Link></li>
+          {!token && <li><Link to="/login">Login</Link></li>}
           <li><span onClick={handleAddListingClick} style={{cursor: 'pointer'}}>Add Listing</span></li>
+          {token && <li><Link to="/profile">Profile</Link></li>}
         </ul>
       </nav>
     </header>
